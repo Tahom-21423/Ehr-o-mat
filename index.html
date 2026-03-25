@@ -213,6 +213,379 @@
     <section class="hero">
       <h1>Ehr-o-mat</h1>
       <p class="subtitle">
+        Interesse, bei uns mitzumachen? Unser Museum bietet eine Vielzahl von Möglichkeiten.<br>
+        Finden Sie heraus, welches Ehrenamt zu Ihnen passen könnte.
+      </p>
+      <div class="meta">
+        Lesen Sie sich die Aussagen durch und klicken Sie jeweils auf <strong>Stimme zu</strong>, <strong>Neutral</strong> oder <strong>Stimme nicht zu</strong>.
+      </div>
+    </section>
+
+    <form id="quizForm">
+      <div class="statement-list" id="questions"></div>
+
+      <div class="controls">
+        <button type="button" class="primary" id="evaluateBtn">Ergebnis anzeigen</button>
+        <button type="button" class="secondary" id="resetBtn">Zurücksetzen</button>
+      </div>
+    </form>
+
+    <section class="results" id="results">
+      <div class="result-card">
+        <div class="kicker">Das passt gut:</div>
+        <h2 id="mainResultTitle"></h2>
+        <p id="mainResultText"></p>
+      </div>
+
+      <div class="result-card">
+        <div class="kicker">Und das passt auch:</div>
+        <h3 id="secondResultTitle"></h3>
+        <p id="secondResultText"></p>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const areas = {
+      A: {
+        title: 'A – Museumsempfang',
+        text: 'Sie gehen offen auf Menschen zu und haben immer ein nettes Wort parat. Auch wenn einmal mehrere Dinge gleichzeitig passieren, bleiben Sie entspannt. So sind Sie ein wichtiger Teil unseres Museumsteams.'
+      },
+      B: {
+        title: 'B – Handwerk, Transport, Auf- und Abbau',
+        text: 'Sie packen lieber an, als lange zu überlegen. Aufbauen, tragen und Lösungen finden ist Ihr Ding. Ohne diesen Einsatz würde hier einiges nicht stehen.'
+      },
+      C: {
+        title: 'C – Kinderprogramm',
+        text: 'Kinder haben Spaß und lernen das Museum kreativ kennen. Sie sind mittendrin und fühlen sich auch dann wohl, wenn es einmal wuselig wird. Und am Ende strahlen alle und wissen: Im Museum ist immer etwas Spannendes los.'
+      },
+      D: {
+        title: 'D – Führungen',
+        text: 'Sie erzählen gern und andere hören zu. Die regionale Geschichte wird bei Ihnen nicht trocken, sondern lebendig. Oder anders gesagt: eine Führung, der man gern folgt.'
+      },
+      E: {
+        title: 'E – Unsere Puppenbühnen',
+        text: 'Hier haben die Figuren das Sagen. Sie erwecken Kasper und Marionetten zum Leben und erfreuen damit ein begeistertes Publikum.'
+      },
+      F: {
+        title: 'F – Plakate aufhängen, Flyer verteilen',
+        text: 'Hier ein Plakat aufhängen, dort Flyer auslegen: Sie machen die Vielseitigkeit unseres Museums bekannt, so dass alle wissen, was bei uns los ist.'
+      },
+      G: {
+        title: 'G – Inventarisierung und Archivierung',
+        text: 'Sie bringen Ordnung in unsere vielseitigen Objekte und sorgen für eine fachgerechte Dokumentation. So leisten Sie einen wichtigen Beitrag zur Geschichte und Kultur der Region.'
+      }
+    };
+
+    const questions = [
+      { text: 'Ich freue mich, neue Menschen kennenzulernen. Ich schnacke gerne und habe immer ein nettes Wort übrig.', areas: ['A', 'D'] },
+      { text: 'Stress? Kein Problem, denn ich lasse mich nicht aus der Ruhe bringen.', areas: ['A', 'C', 'E'] },
+      { text: 'Fitnessstudio brauche ich nicht: Ich packe lieber im Museum an und trainiere dort.', areas: ['B'] },
+      { text: 'Was nicht passt, wird passend gemacht – von mir!', areas: ['B', 'F'] },
+      { text: 'Kinder stellen 1000 Fragen? Perfekt! Ich beantworte sie alle.', areas: ['C'] },
+      { text: 'Leuchtende Kinderaugen und glückliche Eltern sind mein Auftrag...', areas: ['C', 'E'] },
+      { text: 'Ich rede gern und (meistens) hören alle zu.', areas: ['D'] },
+      { text: 'Applaus ist mir durchaus nicht unangenehm.', areas: ['D', 'E'] },
+      { text: 'Irgendwer muss ja dafür sorgen, dass alle wissen, was bei uns los ist.', areas: ['F'] },
+      { text: 'Ordnung ist das halbe Leben? So ein Quatsch – das GANZE Leben!', areas: ['G', 'A'] },
+      { text: 'Andere sehen Staub, ich die Geschichte.', areas: ['G'] },
+      { text: "Ich komm' gut alleine klar. Und so arbeite ich auch gern allein.", areas: ['G', 'F', 'B'] }
+    ];
+
+    const values = {
+      yes: 2,
+      neutral: 1,
+      no: 0
+    };
+
+    const questionsEl = document.getElementById('questions');
+    const resultsEl = document.getElementById('results');
+
+    function renderQuestions() {
+      questionsEl.innerHTML = '';
+      questions.forEach((q, index) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="question">${index + 1}. ${q.text}</div>
+          <div class="options">
+            <div class="option">
+              <input type="radio" name="q${index}" id="q${index}_yes" value="yes">
+              <label for="q${index}_yes">Stimme zu</label>
+            </div>
+            <div class="option">
+              <input type="radio" name="q${index}" id="q${index}_neutral" value="neutral">
+              <label for="q${index}_neutral">Neutral</label>
+            </div>
+            <div class="option">
+              <input type="radio" name="q${index}" id="q${index}_no" value="no">
+              <label for="q${index}_no">Stimme nicht zu</label>
+            </div>
+          </div>
+        `;
+        questionsEl.appendChild(card);
+      });
+    }
+
+    function evaluate() {
+      const scores = Object.fromEntries(Object.keys(areas).map(key => [key, 0]));
+      let answered = 0;
+
+      questions.forEach((q, index) => {
+        const selected = document.querySelector(`input[name="q${index}"]:checked`);
+        if (!selected) return;
+        answered++;
+        const points = values[selected.value] || 0;
+        q.areas.forEach(area => {
+          scores[area] += points;
+        });
+      });
+
+      if (answered < questions.length) {
+        alert('Bitte beantworten Sie erst alle Aussagen.');
+        return;
+      }
+
+      const ranked = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+      const [topKey] = ranked[0];
+      const [secondKey] = ranked[1];
+
+      document.getElementById('mainResultTitle').textContent = areas[topKey].title;
+      document.getElementById('mainResultText').textContent = areas[topKey].text;
+      document.getElementById('secondResultTitle').textContent = areas[secondKey].title;
+      document.getElementById('secondResultText').textContent = areas[secondKey].text;
+
+      resultsEl.classList.add('show');
+      resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function resetQuiz() {
+      document.querySelectorAll('input[type="radio"]').forEach(input => input.checked = false);
+      resultsEl.classList.remove('show');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    document.getElementById('evaluateBtn').addEventListener('click', evaluate);
+    document.getElementById('resetBtn').addEventListener('click', resetQuiz);
+
+    renderQuestions();
+  </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+  <title>Finden Sie Ihr Ehrenamt im Museum im Marstall</title>
+
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --card: #ffffff;
+      --text: #1f2a35;
+      --muted: #6b7c8f;
+      --accent: #2f5f8f;
+      --accent-2: #a9c3db;
+      --line: #d9e2ec;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Roboto, Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+    }
+
+    .hero, .card, .result-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 0;
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.9rem, 4vw, 3rem);
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+
+    .meta {
+      margin-top: 16px;
+      padding: 14px 16px;
+      background: #f1f5f9;
+      border-radius: 0;
+      border: 1px solid var(--line);
+      color: var(--muted);
+    }
+
+    .statement-list {
+      display: grid;
+      gap: 14px;
+      margin: 20px 0;
+    }
+
+    .card {
+      padding: 18px;
+    }
+
+    .question {
+      font-weight: 700;
+      margin-bottom: 12px;
+      font-size: 1.02rem;
+    }
+
+    .options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .option {
+      position: relative;
+      flex: 1 1 180px;
+    }
+
+    .option input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .option label {
+      display: block;
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid var(--line);
+      border-radius: 0;
+      background: #ffffff;
+      color: var(--text);
+      cursor: pointer;
+      text-align: center;
+      transition: .18s ease;
+      font-weight: 700;
+    }
+
+    .option label:hover {
+      border-color: var(--accent-2);
+      transform: translateY(-1px);
+    }
+
+    .option input:checked + label {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 24px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 0;
+      padding: 14px 18px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: .18s ease;
+    }
+
+    .primary {
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    .primary:hover,
+    .secondary:hover {
+      transform: translateY(-1px);
+    }
+
+    .secondary {
+      background: #e2e8f0;
+      color: var(--text);
+    }
+
+    .results {
+      margin-top: 24px;
+      display: none;
+      gap: 16px;
+    }
+
+    .results.show {
+      display: grid;
+    }
+
+    .result-card {
+      padding: 22px;
+    }
+
+    .kicker {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-size: .8rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    h2, h3 {
+      margin: 0 0 10px;
+      line-height: 1.2;
+    }
+
+    @media (max-width: 640px) {
+      .hero, .card, .result-card {
+        border-radius: 0;
+      }
+
+      .hero {
+        padding: 22px;
+      }
+
+      .card {
+        padding: 16px;
+      }
+
+      .option {
+        flex-basis: 100%;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>Ehr-o-mat</h1>
+      <p class="subtitle">
         Interesse, bei uns mitzumachen? Das ist toll, wir freuen uns über alle!<br>
         Finden Sie heraus, welches Ehrenamt zu Ihnen passen könnte.
       </p>
