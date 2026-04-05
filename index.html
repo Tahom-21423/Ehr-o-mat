@@ -342,6 +342,12 @@
         });
       });
 
+      const maxScore = Math.max(...Object.values(scores));
+      if (maxScore === 0) {
+      alert('Oh, bislang scheint noch nichts wirklich zu passen. Beantworten Sie gerne nochmal die Fragen oder machen Sie mit uns einen Termin - wir finden bestimmt etwas für Sie!');
+      return;
+      }
+
       if (answered < questions.length) {
         alert('Bitte beantworten Sie erst alle Aussagen.');
         return;
