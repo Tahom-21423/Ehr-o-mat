@@ -35,7 +35,7 @@
       padding: 24px 16px 48px;
     }
 
-    .hero, .card, .result-card {
+    .hero, .card, .result-card, .message-card {
       background: var(--card);
       border-radius: 0;
       box-shadow: var(--shadow);
@@ -50,7 +50,7 @@
       margin: 0 0 8px;
       font-size: clamp(1.9rem, 4vw, 3rem);
       line-height: 1.1;
-      font-family: 'Bree Serif', serif !important;
+      font-family: 'Bree Serif', serif;
     }
 
     .subtitle {
@@ -158,6 +158,23 @@
       color: var(--text);
     }
 
+    .message {
+      margin-top: 24px;
+      display: none;
+    }
+
+    .message.show {
+      display: block;
+    }
+
+    .message-card {
+      padding: 20px 22px;
+    }
+
+    .message-card p {
+      margin: 0;
+    }
+
     .results {
       margin-top: 24px;
       display: none;
@@ -187,7 +204,7 @@
     }
 
     @media (max-width: 640px) {
-      .hero, .card, .result-card {
+      .hero, .card, .result-card, .message-card {
         border-radius: 0;
       }
 
@@ -230,6 +247,12 @@
         <button type="button" class="secondary" id="resetBtn">Zurücksetzen</button>
       </div>
     </form>
+
+    <section class="message" id="messageBox">
+      <div class="message-card">
+        <p id="messageText"></p>
+      </div>
+    </section>
 
     <section class="results" id="results">
       <div class="result-card">
@@ -301,6 +324,8 @@
 
     const questionsEl = document.getElementById('questions');
     const resultsEl = document.getElementById('results');
+    const messageBoxEl = document.getElementById('messageBox');
+    const messageTextEl = document.getElementById('messageText');
 
     function renderQuestions() {
       questionsEl.innerHTML = '';
@@ -328,28 +353,45 @@
       });
     }
 
+    function showMessage(text) {
+      messageTextEl.textContent = text;
+      messageBoxEl.classList.add('show');
+    }
+
+    function hideMessage() {
+      messageTextEl.textContent = '';
+      messageBoxEl.classList.remove('show');
+    }
+
     function evaluate() {
       const scores = Object.fromEntries(Object.keys(areas).map(key => [key, 0]));
       let answered = 0;
 
+      hideMessage();
+      resultsEl.classList.remove('show');
+
       questions.forEach((q, index) => {
         const selected = document.querySelector(`input[name="q${index}"]:checked`);
         if (!selected) return;
+
         answered++;
-        const points = values[selected.value] || 0;
+        const points = values[selected.value];
         q.areas.forEach(area => {
           scores[area] += points;
         });
       });
 
-      const maxScore = Math.max(...Object.values(scores));
-      if (maxScore === 0) {
-      alert('Oh, bislang scheint noch nichts wirklich zu passen. Beantworten Sie gerne nochmal die Fragen oder machen Sie mit uns einen Termin - wir finden bestimmt etwas für Sie!');
-      return;
+      if (answered < questions.length) {
+        showMessage('Bitte beantworten Sie erst alle Aussagen.');
+        messageBoxEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
       }
 
-      if (answered < questions.length) {
-        alert('Bitte beantworten Sie erst alle Aussagen.');
+      const maxScore = Math.max(...Object.values(scores));
+
+      if (maxScore <= 0) {
+        showMessage('Oh, bislang scheint noch nichts wirklich zu passen. Beantworten Sie die Fragen gern noch einmal – oder vereinbaren Sie einen Termin mit uns. Wir finden bestimmt etwas Passendes!');
+        messageBoxEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
         return;
       }
 
@@ -369,6 +411,7 @@
     function resetQuiz() {
       document.querySelectorAll('input[type="radio"]').forEach(input => input.checked = false);
       resultsEl.classList.remove('show');
+      hideMessage();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
